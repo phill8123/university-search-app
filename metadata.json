@@ -1,0 +1,5 @@
+{
+  "name": "대학학과 검색",
+  "description": "한국 4년제 대학 학과 검색 및 입시결과(수시/정시) 조회 서비스",
+  "requestFramePermissions": []
+}
