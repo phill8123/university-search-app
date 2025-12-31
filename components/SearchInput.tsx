@@ -28,7 +28,7 @@ const SearchInput: React.FC<SearchInputProps> = ({ onSearch, onReset, isLoading,
     <div className={`w-full transition-all duration-500 ease-out ${isIdle ? 'bg-transparent py-10 sm:py-16' : 'bg-white border-b border-slate-200 py-6 mb-8'}`}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <h2 className={`text-center transition-all duration-500 ${isIdle ? 'text-xl sm:text-2xl font-black text-white mb-8 leading-snug drop-shadow-md' : 'text-lg font-bold text-slate-800 mb-5'}`}>
-          원하는 대학, 학과, 또는 진로를 검색해보세요
+          원하는 대학, 학과를 검색해보세요
         </h2>
         <form onSubmit={handleSubmit} className="relative flex items-center group">
           <input

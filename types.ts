@@ -17,6 +17,8 @@ export interface UniversityDepartment {
   tuitionFee?: string; // 연간 등록금
   employmentRate?: string; // 취업률
   departmentRanking?: string; // 학과 순위/위상
+  aiSummary?: string;
+  admission2024?: AdmissionYearData | null;
 }
 
 export interface SearchResponse {
