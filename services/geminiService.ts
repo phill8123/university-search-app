@@ -115,13 +115,39 @@ const flattenDepartments = (univ: UniversityStructure): UniversityDepartment[] =
       if (results.some(r => r.departmentName === deptName)) continue;
 
       let field = "기타";
-      if (collegeName.includes("공과") || collegeName.includes("소프트웨어") || collegeName.includes("IT")) field = "공학";
-      else if (collegeName.includes("인문")) field = "인문";
-      else if (collegeName.includes("사회") || collegeName.includes("경영") || collegeName.includes("경제")) field = "사회";
-      else if (collegeName.includes("자연") || collegeName.includes("과학")) field = "자연";
-      else if (collegeName.includes("의과") || collegeName.includes("간호") || collegeName.includes("약학")) field = "의학";
-      else if (collegeName.includes("예술") || collegeName.includes("체육") || collegeName.includes("미술")) field = "예체능";
-      if (univ.tier === "Edu") field = "교육";
+
+      // 0. Priority: CSV Data (Large - Middle)
+      if (univ.deptCategories && univ.deptCategories[deptName]) {
+        field = univ.deptCategories[deptName];
+      }
+
+      // Fallback or Refinement if 'field' is still generic or 'Other'
+      // Only apply heuristics if we didn't get a good field from CSV or if it's "기타"
+      const isGeneric = field === "기타" || field.trim() === "";
+
+      if (isGeneric) {
+        // 1. Check College Name
+        if (collegeName.includes("공과") || collegeName.includes("소프트웨어") || collegeName.includes("IT")) field = "공학";
+        else if (collegeName.includes("인문")) field = "인문";
+        else if (collegeName.includes("사회") || collegeName.includes("경영") || collegeName.includes("경제")) field = "사회";
+        else if (collegeName.includes("자연") || collegeName.includes("과학")) field = "자연";
+        else if (collegeName.includes("의과") || collegeName.includes("간호") || collegeName.includes("약학")) field = "의학";
+        else if (collegeName.includes("예술") || collegeName.includes("체육") || collegeName.includes("미술")) field = "예체능";
+
+        // 2. Default Overrides based on University Tier
+        if (univ.tier === "Edu") field = "교육";
+
+        // 3. Strong Overrides based on Department Name
+        if (deptName.includes("의예") || deptName.includes("의학") || deptName.includes("간호") || deptName.includes("약학") || deptName.includes("수학") || deptName.includes("한의") || deptName.includes("수의") || deptName.includes("물리치료") || deptName.includes("임상병리")) {
+          field = "의학";
+        } else if (deptName.includes("컴퓨터") || deptName.includes("소프트웨어") || deptName.includes("전기") || deptName.includes("전자") || deptName.includes("기계") || deptName.includes("건축") || deptName.includes("토목")) {
+          field = "공학";
+        } else if (deptName.includes("경영") || deptName.includes("경제") || deptName.includes("행정")) {
+          field = "사회";
+        } else if (deptName.includes("디자인") || deptName.includes("체육") || deptName.includes("음악") || deptName.includes("미술")) {
+          field = "예체능";
+        }
+      }
 
       results.push({
         id: `${univ.name}-${deptName}`,

@@ -9,6 +9,7 @@ export interface UniversityStructure {
     colleges: {
         [collegeName: string]: string[]; // "공과대학": ["컴퓨터공학과", ...]
     };
+    deptCategories?: { [deptName: string]: string }; // "컴퓨터공학과": "공학계열 - 전산학컴퓨터공학"
     stats?: { [deptName: string]: { recruit: number; applicants: number; rate: string } }; // Admission Stats
 }
 

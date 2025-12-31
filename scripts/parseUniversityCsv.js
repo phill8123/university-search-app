@@ -54,58 +54,38 @@ async function processLineByLine() {
         const location = locationStr.split(' ')[0]; // '강원 강릉시' -> '강원'
         const type = columns[9];
         const courseType = columns[16];
-        const category = columns[17] || '기타'; // College proxy
+        const stdLarge = columns[17] || '기타';
+        const stdMiddle = columns[18] || '';
+        const deptCategory = stdMiddle ? `${stdLarge} - ${stdMiddle}` : stdLarge;
         const deptName = columns[21];
-
-        if (year !== '2025') continue;
-        if (year !== '2025') continue;
-
-        // Allow Universities, Education Universities, and Science Institutes
-        // KAIST: 한국과학기술원, UNIST: 울산과학기술원, DGIST: 대구경북과학기술원, GIST: 광주과학기술원
-        // "전공대학" types might also need handling if user requests, but strict focus on user request first.
-        // Expanded Regex: Ends with 대학교 OR contains 과학기술원 Or ends with 예술종합학교
-        const isUniv = schoolType.endsWith('대학교') || schoolType.endsWith('교육대학') || schoolType.includes('과학기술원') || schoolType.includes('예술종합학교');
-
-        if (!isUniv) continue;
-        if (courseType !== '대학과정') continue;
-        if (!deptName || deptName === '소속학과없음') continue;
-
-        // "Undecided" majors check
-        // Often labeled as "자율전공", "자유전공", "무학과", "학부" (standalone)
-        // Some might be in "category" column as "자율전공학부" etc.
-        // We accept them as departments using the deptName directly.
-
 
         if (!universities.has(univName)) {
             universities.set(univName, {
                 name: univName,
                 location: location,
                 type: type,
-                schoolType: schoolType, // Store for Tier logic
-                tier: 'Regional', // Default, will update later
+                schoolType: schoolType,
+                tier: 'Regional',
                 estMetic: 99,
-                colleges: {}
+                colleges: {},
+                deptCategories: {}
             });
         }
 
         const univ = universities.get(univName);
 
-        if (!univ.colleges[category]) {
-            univ.colleges[category] = [];
+        // Group by Large Category for 'colleges' structure (keep existing logic for grouping)
+        if (!univ.colleges[stdLarge]) {
+            univ.colleges[stdLarge] = [];
         }
 
-        // Avoid duplicates in department list
-        // Note: The CSV might have multiple rows for the same department due to Day/Night (주간/야간) or other splits.
-        // We aggregate stats if needed, but for now let's just push unique names.
-        // If we want to capture stats, we need a structure map, not just a list of strings.
-        // But optimizing for "Search" first: existing structure uses `univ.colleges[category] = [deptName, ...]`
-        // AND `admissionData` is fetched via `geminiService`.
-        // User wants "Admission Results" in the app.
-        // Let's modify `generatedUniversitiesDB` to export a separate `admissionStats` map.
-
-        if (!univ.colleges[category].includes(deptName)) {
-            univ.colleges[category].push(deptName);
+        if (!univ.colleges[stdLarge].includes(deptName)) {
+            univ.colleges[stdLarge].push(deptName);
         }
+
+        // Store specific category mapping
+        if (!univ.deptCategories) univ.deptCategories = {};
+        univ.deptCategories[deptName] = deptCategory;
 
         // Capture Admission Stats
         const recruitStr = columns[23] || '0';
@@ -123,8 +103,6 @@ async function processLineByLine() {
             applicants: applicants,
             rate: competitionRate.toFixed(2)
         };
-
-
     }
 
     // Generate TS Code
@@ -153,6 +131,14 @@ async function processLineByLine() {
         output += `    colleges: {\n`;
         for (const [cat, depts] of Object.entries(data.colleges)) {
             output += `      "${cat}": [${depts.map(d => `"${d}"`).join(', ')}],\n`;
+        }
+        output += `    },\n`;
+
+        output += `    deptCategories: {\n`;
+        if (data.deptCategories) {
+            for (const [dept, cat] of Object.entries(data.deptCategories)) {
+                output += `      "${dept}": "${cat}",\n`;
+            }
         }
         output += `    },\n`;
 
