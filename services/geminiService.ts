@@ -215,7 +215,7 @@ const calculateRankingScore = (univ: UniversityStructure, deptName: string, quer
   const isKorean = d.includes("한의");
   const isVet = d.includes("수의");
   const isPharm = (d.includes("약학") || d.includes("약과")) && !d.includes("제약");
-  const isPharmEng = d.includes("제약");
+
 
   // Relative Hierarchy Bonuses (Internal sorting for mixed views)
   if (isMedical) score += 300;
