@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { SearchResponse, UniversityDepartment } from "../types";
 import { universitiesDB, realAdmissions, getEstimatedGrade, getApproximateSpecs, UniversityStructure } from "./universityData";
+import { getBaseTierScore, MAJOR_HOSPITALS, MAJOR_PHARMACY } from './rankingUtils';
 
 const apiKey = import.meta.env.VITE_API_KEY || "";
 
@@ -107,12 +108,32 @@ const generateAIAnalysis = async (univ: UniversityStructure, deptName: string, c
 // Helper to flatten university structure into search results
 const flattenDepartments = (univ: UniversityStructure): UniversityDepartment[] => {
   const results: UniversityDepartment[] = [];
+
+  // Filter out Graduate Schools at University level
+  if (univ.name.includes("대학원")) return [];
+
   const realData = realAdmissions.filter(r => r.universityName === univ.name);
   results.push(...realData);
 
   for (const [collegeName, deptList] of Object.entries(univ.colleges)) {
+    // Filter out Graduate Schools at College level
+    if (collegeName.includes("대학원")) continue;
+
     for (const deptName of deptList) {
+      // Filter out Graduate Schools at Department level
+      if (deptName.includes("대학원")) continue;
+
+      // Filter out '전공' (Majors)
+      if (deptName.includes("전공")) continue;
+
       if (results.some(r => r.departmentName === deptName)) continue;
+
+      // Double check cleaning in case DB wasn't updated perfectly
+      // Also remove parentheses with years/numbers/systems like (2+4년제), (6년제), (2+4학제)
+      let cleanDeptName = deptName.replace(/\?/g, ' ').replace(/\s+/g, ' ').trim();
+      cleanDeptName = cleanDeptName.replace(/\([0-9+\s]*(년|학)(제)?\)/g, "").trim();
+
+
 
       let field = "기타";
 
@@ -125,6 +146,15 @@ const flattenDepartments = (univ: UniversityStructure): UniversityDepartment[] =
       // Only apply heuristics if we didn't get a good field from CSV or if it's "기타"
       const isGeneric = field === "기타" || field.trim() === "";
 
+      // Force Overrides for Specific Medical Fields (Must run after generic assignment)
+      if (deptName.includes("한의")) field = "한의학";
+      else if (deptName.includes("수의")) field = "수의학";
+      else if (deptName.includes("치의")) field = "치의학";
+      else if (deptName.includes("약학") || deptName.includes("약학과")) field = "약학";
+      else if (deptName.includes("간호")) field = "간호학";
+      else if (deptName.includes("의예") || deptName.includes("의학")) field = "의학";
+      // End Force Overrides
+
       if (isGeneric) {
         // 1. Check College Name
         if (collegeName.includes("공과") || collegeName.includes("소프트웨어") || collegeName.includes("IT")) field = "공학";
@@ -134,13 +164,13 @@ const flattenDepartments = (univ: UniversityStructure): UniversityDepartment[] =
         else if (collegeName.includes("의과") || collegeName.includes("간호") || collegeName.includes("약학")) field = "의학";
         else if (collegeName.includes("예술") || collegeName.includes("체육") || collegeName.includes("미술")) field = "예체능";
 
+
         // 2. Default Overrides based on University Tier
         if (univ.tier === "Edu") field = "교육";
 
-        // 3. Strong Overrides based on Department Name
-        if (deptName.includes("의예") || deptName.includes("의학") || deptName.includes("간호") || deptName.includes("약학") || deptName.includes("수학") || deptName.includes("한의") || deptName.includes("수의") || deptName.includes("물리치료") || deptName.includes("임상병리")) {
-          field = "의학";
-        } else if (deptName.includes("컴퓨터") || deptName.includes("소프트웨어") || deptName.includes("전기") || deptName.includes("전자") || deptName.includes("기계") || deptName.includes("건축") || deptName.includes("토목")) {
+        // 3. Other Strong Overrides
+        if (deptName.includes("물리치료") || deptName.includes("임상병리") || deptName.includes("치위생")) field = "보건";
+        else if (deptName.includes("컴퓨터") || deptName.includes("소프트웨어") || deptName.includes("전기") || deptName.includes("전자") || deptName.includes("기계") || deptName.includes("건축") || deptName.includes("토목")) {
           field = "공학";
         } else if (deptName.includes("경영") || deptName.includes("경제") || deptName.includes("행정")) {
           field = "사회";
@@ -150,9 +180,10 @@ const flattenDepartments = (univ: UniversityStructure): UniversityDepartment[] =
       }
 
       results.push({
-        id: `${univ.name}-${deptName}`,
+        id: `${univ.name}-${cleanDeptName}`,
         universityName: univ.name,
-        departmentName: deptName,
+        departmentName: cleanDeptName,
+
         location: univ.location,
         field: field,
         admissionData: [],
@@ -166,38 +197,103 @@ const flattenDepartments = (univ: UniversityStructure): UniversityDepartment[] =
   return results;
 };
 
-// Helper to calculate a deterministic ranking score
-const calculateRankingScore = (univ: UniversityStructure, deptName: string): number => {
+// Helper to calculate a deterministic ranking score based on Admission Difficulty
+const calculateRankingScore = (univ: UniversityStructure, deptName: string, query?: string): number => {
+  const d = deptName;
   let score = 0;
-  switch (univ.tier) {
-    case "SKY": score = 95; break;
-    case "Top15": score = 90; break;
-    case "Edu": score = 88; break;
-    case "InSeoul": score = 85; break;
-    case "National": score = 75; break;
-    case "Metro": score = 75; break;
-    case "Regional": score = 60; break;
-    default: score = 50;
+
+  // 1. Base University Tier Score (User Preference / Reputation)
+  const tierScore = getBaseTierScore(univ.name); // 50 ~ 100
+  score += tierScore;
+
+  // 2. Department Category Logic (Bonus Base)
+  // Medical Fields get a massive base boost so they sort comfortably among themselves
+  // but if we are filtering anyway, the relative ranking matters most.
+
+  const isMedical = d.includes("의예") || d.includes("의학");
+  const isDent = d.includes("치의") || d.includes("치과");
+  const isKorean = d.includes("한의");
+  const isVet = d.includes("수의");
+  const isPharm = (d.includes("약학") || d.includes("약과")) && !d.includes("제약");
+  const isPharmEng = d.includes("제약");
+
+  // Relative Hierarchy Bonuses (Internal sorting for mixed views)
+  if (isMedical) score += 300;
+  else if (isDent) score += 290;
+  else if (isKorean) score += 280;
+  else if (isVet) score += 270;
+  else if (isPharm) score += 260;
+  else if (d.includes("간호")) score += 50;
+  else if (d.includes("컴퓨터") || d.includes("소프트웨어") || d.includes("반도체")) score += 20;
+
+  // 3. Field Specific Bonuses
+  // Medical / Nursing (Big 5 Hospitals)
+  if (isMedical || d.includes("간호")) {
+    if (MAJOR_HOSPITALS.some(h => univ.name.includes(h))) {
+      score += 20; // Big boost for Big 5
+    }
   }
-  const isMed = ["의예과", "치의예과", "한의예과", "수의예과", "약학과", "의학과"].some(k => deptName.includes(k));
-  const isPop = ["컴퓨터", "소프트웨어", "인공지능", "반도체"].some(k => deptName.includes(k));
 
-  if (isMed) {
-    score += 20;
-    const isBig5 = ["서울대학교", "연세대학교", "가톨릭대학교", "울산대학교", "성균관대학교"].includes(univ.name);
-    if (isBig5 && (deptName.includes("의예과") || deptName.includes("의학과"))) score += 50;
-    if (univ.name === "서울대학교") score += 1000;
-  } else if (isPop) score += 3;
+  // Pharmacy (Traditional Strongholds)
+  if (isPharm) {
+    if (MAJOR_PHARMACY.some(h => univ.name.includes(h))) {
+      score += 15; // Boost for traditional pharmacy schools
+    }
+  }
 
-  if (univ.name === "서울대학교") score += 1000;
+  // 4. In-Seoul Bonus
+  if (univ.location.includes("서울")) score += 5;
 
+  // 5. Estimated Admission Data (Jeongsi Cutline)
+  // This is the most accurate metric if valid.
+  const est = getEstimatedGrade(univ.tier, deptName, 2025);
+  let jeongsiScore = parseFloat(est.jeongsi);
+
+  if (!isNaN(jeongsiScore)) {
+    // Mapping: 100 -> ~100 pts. 80 -> ~0 pts.
+    // Boost highly for score > 90
+    if (jeongsiScore > 90) {
+      score += (jeongsiScore - 90) * 3;
+    }
+  }
+
+  // 6. Penalty for Substring mismatches (Crucial for Strict Separation logic fallback)
+  if (query) {
+    const q = query.replaceAll(" ", "").trim();
+
+    // Define query types
+    const qVet = q.includes("수의");
+    const qKorean = q.includes("한의");
+    const qDent = q.includes("치의") || q.includes("치과");
+    const qPharmEng = q.includes("제약");
+    const qPharm = (q.includes("약학") || q.includes("약대")) && !qPharmEng;
+    const qMed = (q.includes("의예") || q.includes("의학")) && !qVet && !qKorean && !qDent && !qPharm && !qPharmEng;
+
+    // Apply Penalties (Mutual Exclusion)
+    if (qMed) {
+      if (d.includes("수의") || d.includes("한의") || d.includes("치의") || d.includes("약학") || d.includes("제약")) score -= 1000;
+    } else if (qVet) {
+      if (!d.includes("수의")) score -= 1000;
+    } else if (qKorean) {
+      if (!d.includes("한의")) score -= 1000;
+    } else if (qDent) {
+      if (!d.includes("치의") && !d.includes("치과")) score -= 1000;
+    } else if (qPharm) {
+      if (!d.includes("약학") && !d.includes("약과")) score -= 1000;
+      if (d.includes("제약")) score -= 1000;
+    } else if (qPharmEng) {
+      if (!d.includes("제약")) score -= 1000;
+    }
+  }
+
+  // 7. Small jitter for stability
   let hash = 0;
   const str = univ.name + deptName;
   for (let i = 0; i < str.length; i++) {
     hash = (hash << 5) - hash + str.charCodeAt(i);
     hash |= 0;
   }
-  return score + (Math.abs(hash) % 100 / 100);
+  return score + (Math.abs(hash) % 100 / 1000);
 };
 
 export const searchDepartments = async (query: string): Promise<SearchResponse> => {
@@ -213,48 +309,93 @@ export const searchDepartments = async (query: string): Promise<SearchResponse> 
   const normalizedQuery = query.endsWith('대') ? query.slice(0, -1) : query;
 
   let globalResults: UniversityDepartment[] = [];
+  const seenIds = new Set<string>();
+
   const matchedUnivs = universitiesDB.filter(u => u.name.includes(query) || query.includes(u.name) || (normalizedQuery.length > 1 && u.name.includes(normalizedQuery)));
 
+  // Strategy 1: Matched Universities
   if (matchedUnivs.length > 0) {
     for (const univ of matchedUnivs) {
       const depts = flattenDepartments(univ);
-
-      // Normalize function to remove common suffixes
-      const cleanName = (name: string) => name.replace(/대학교?$/, "").replace(/대$/, "");
-
-      const cleanQuery = cleanName(query.trim());
-      const cleanUnivName = cleanName(univ.name);
-
-      // If the query is essentially just the university name (e.g. "서울대", "서울대학교")
-      if (cleanQuery === cleanUnivName) {
-        globalResults.push(...depts);
-      } else {
-        // Otherwise, try to extract the department part
-        // e.g. "서울대 컴퓨터" -> "컴퓨터"
-        const queryDept = query.replace(univ.name, "").replace(cleanUnivName, "").trim();
-
-        if (queryDept.length > 0) {
-          globalResults.push(...depts.filter(d => d.departmentName.includes(queryDept)));
-        } else {
-          // Fallback: if replacement result is empty, it means it matched fully
-          globalResults.push(...depts);
+      for (const d of depts) {
+        if (!seenIds.has(d.id)) {
+          seenIds.add(d.id);
+          globalResults.push(d);
         }
       }
     }
-  } else {
-    const isMedSearch = ["의대", "의예과", "의학과"].includes(query);
+  }
+
+  // Strategy 2: Global Department Search
+  if (query.length >= 2) {
     for (const univ of universitiesDB) {
-      let matches = flattenDepartments(univ).filter(d => d.departmentName.includes(query));
-      if (isMedSearch) matches = matches.filter(d => !d.departmentName.includes("치") && !d.departmentName.includes("한") && !d.departmentName.includes("수"));
-      globalResults.push(...matches);
+      if (matchedUnivs.includes(univ)) continue;
+
+      const depts = flattenDepartments(univ);
+      const matches = depts.filter(d =>
+        d.departmentName.includes(query) ||
+        query.includes(d.departmentName) ||
+        d.field.includes(query)
+      );
+
+      for (const d of matches) {
+        if (!seenIds.has(d.id)) {
+          seenIds.add(d.id);
+          globalResults.push(d);
+        }
+      }
     }
+  }
+
+  // STRICT FILTERING: Enforce Mutual Exclusion for Medical/Pharm Fields
+  const qStr = query.replaceAll(" ", "").trim();
+  const isVetQuery = qStr.includes("수의");
+  const isKoreanQuery = qStr.includes("한의");
+  const isDentQuery = qStr.includes("치의") || qStr.includes("치과");
+
+  // Pharmacy vs Pharmaceutical
+  // "제약" implies Pharmaceutical. "약학" or "약대" implies Pharmacy (unless it contains "제약").
+  const isPharmEngQuery = qStr.includes("제약");
+  const isPharmQuery = (qStr.includes("약학") || qStr.includes("약대")) && !isPharmEngQuery;
+
+  // Medicine
+  // Exclude: Vet, Korean, Dent, Pharm, PharmEng
+  const isMedQuery = (qStr.includes("의예") || qStr.includes("의학")) && !isVetQuery && !isKoreanQuery && !isDentQuery && !isPharmQuery && !isPharmEngQuery;
+
+  if (isMedQuery) {
+    // Explicitly exclude Vet, Korean, Dent, Pharm, PharmEng (and "제약" just in case)
+    globalResults = globalResults.filter(d =>
+      !d.departmentName.includes("수의") &&
+      !d.departmentName.includes("한의") &&
+      !d.departmentName.includes("치의") &&
+      !d.departmentName.includes("약학") &&
+      !d.departmentName.includes("제약")
+    );
+  } else if (isVetQuery) {
+    globalResults = globalResults.filter(d => d.departmentName.includes("수의"));
+  } else if (isKoreanQuery) {
+    globalResults = globalResults.filter(d => d.departmentName.includes("한의"));
+  } else if (isDentQuery) {
+    globalResults = globalResults.filter(d => d.departmentName.includes("치의") || d.departmentName.includes("치과"));
+  } else if (isPharmQuery) {
+    // Pharmacy: Match "약학" matches, but EXCLUDE "제약"
+    globalResults = globalResults.filter(d =>
+      (d.departmentName.includes("약학") || d.departmentName.includes("약과")) &&
+      !d.departmentName.includes("제약")
+    );
+  } else if (isPharmEngQuery) {
+    // Pharmaceutical: Must include "제약"
+    globalResults = globalResults.filter(d => d.departmentName.includes("제약"));
   }
 
   globalResults.sort((a, b) => {
     const uA = universitiesDB.find(u => u.name === a.universityName);
     const uB = universitiesDB.find(u => u.name === b.universityName);
     if (!uA || !uB) return 0;
-    return calculateRankingScore(uB, b.departmentName) - calculateRankingScore(uA, a.departmentName);
+
+    // Sort logic: Higher Score First
+    return calculateRankingScore(uB, b.departmentName, query) - calculateRankingScore(uA, a.departmentName, query);
+
   });
 
   return { estimatedTotalCount: globalResults.length, departments: globalResults.slice(0, 100) };

@@ -53,13 +53,26 @@ async function processLineByLine() {
         const locationStr = columns[7] || '';
         const location = locationStr.split(' ')[0]; // '강원 강릉시' -> '강원'
         const type = columns[9];
+
+        // FILTER: Exclude Cyber Universities and Vocational Colleges
+        if (schoolType.includes("전문대학")) continue;
+        if (univName.includes("사이버") || univName.includes("디지털") || univName.includes("방송통신")) continue;
+
         const courseType = columns[16];
         const stdLarge = columns[17] || '기타';
         const stdMiddle = columns[18] || '';
         const deptCategory = stdMiddle ? `${stdLarge} - ${stdMiddle}` : stdLarge;
-        const deptName = columns[21];
+        let deptName = columns[21];
+
+        // Clean deptName: remove '?' and trim
+        deptName = deptName.replace(/\?/g, ' ').replace(/\s+/g, ' ').trim();
+
+        // FILTER: Exclude Non-Freshman Medical Departments (Duplicates with Pre-med)
+        const medBlacklist = ['의학과', '수의학과', '치의학과', '한의학과'];
+        if (medBlacklist.includes(deptName)) continue;
 
         if (!universities.has(univName)) {
+
             universities.set(univName, {
                 name: univName,
                 location: location,
@@ -106,7 +119,7 @@ async function processLineByLine() {
     }
 
     // Generate TS Code
-    let output = `import { UniversityStructure } from './universityData';\n\n`;
+    let output = `// @ts-nocheck\nimport { UniversityStructure } from './universityData';\n\n`;
     output += `export const generatedUniversitiesDB: UniversityStructure[] = [\n`;
 
     for (const [name, data] of universities) {

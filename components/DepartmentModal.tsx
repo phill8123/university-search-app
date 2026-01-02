@@ -109,7 +109,7 @@ const DepartmentModal: React.FC<Props> = ({ data: initialData, onClose, onUpdate
                 <span className="text-xl">🤖</span>
                 <h3 className="text-xl font-bold text-gray-900">AI 학과 분석</h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Tuition */}
                 <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex flex-col items-center text-center">
                   <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mb-2 text-xl">
@@ -125,14 +125,6 @@ const DepartmentModal: React.FC<Props> = ({ data: initialData, onClose, onUpdate
                   </div>
                   <span className="text-sm text-gray-500 font-medium mb-1">취업률</span>
                   <span className="text-lg font-bold text-gray-900">{details.employmentRate || "-"}</span>
-                </div>
-                {/* Ranking */}
-                <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 flex flex-col items-center text-center">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mb-2 text-xl">
-                    🏆
-                  </div>
-                  <span className="text-sm text-gray-500 font-medium mb-1">학과 위상</span>
-                  <span className="text-lg font-bold text-gray-900">{details.departmentRanking || "-"}</span>
                 </div>
               </div>
             </section>
@@ -173,16 +165,7 @@ const DepartmentModal: React.FC<Props> = ({ data: initialData, onClose, onUpdate
               </p>
             </section>
 
-            {/* Department Overview Section (Text Summary) */}
-            <section className="bg-emerald-50/50 rounded-xl p-6 border border-emerald-100 mb-8 mt-8 animate-[fadeIn_0.5s_ease-out]">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xl">🎓</span>
-                <h3 className="text-lg font-bold text-gray-900">학과정보</h3>
-              </div>
-              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {details.description}
-              </div>
-            </section>
+
           </>
         </div>
 
