@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        workbox: {
+          maximumFileSizeToCacheInBytes: 10000000,
+        },
         manifest: {
           name: '대학학과 검색 - 입시결과 조회',
           short_name: '대학학과',
