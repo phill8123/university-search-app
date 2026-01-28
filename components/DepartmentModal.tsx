@@ -109,23 +109,8 @@ const DepartmentModal: React.FC<Props> = ({ data: initialData, onClose, onUpdate
                 <span className="text-xl">🤖</span>
                 <h3 className="text-xl font-bold text-gray-900">AI 학과 분석</h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Tuition */}
-                <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex flex-col items-center text-center">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mb-2 text-xl">
-                    💰
-                  </div>
-                  <span className="text-sm text-gray-500 font-medium mb-1">연간 평균 등록금</span>
-                  <span className="text-lg font-bold text-gray-900">{details.tuitionFee || "-"}</span>
-                </div>
-                {/* Employment */}
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-col items-center text-center">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-2 text-xl">
-                    📊
-                  </div>
-                  <span className="text-sm text-gray-500 font-medium mb-1">취업률</span>
-                  <span className="text-lg font-bold text-gray-900">{details.employmentRate || "-"}</span>
-                </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 text-slate-700 leading-relaxed font-medium">
+                {details.description || "이 학과에 대한 AI 요약 정보가 아직 준비되지 않았습니다."}
               </div>
             </section>
 
