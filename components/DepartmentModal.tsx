@@ -56,16 +56,7 @@ const DepartmentModal: React.FC<Props> = ({ data: initialData, onClose, onUpdate
     if (e.target === e.currentTarget) onClose();
   };
 
-  const getBadgeStyle = (field: string) => {
-    const f = field || "";
-    if (f.includes("공학") || f.includes("IT")) return "bg-blue-100 text-blue-700";
-    if (f.includes("의학")) return "bg-red-100 text-red-700";
-    if (f.includes("인문") || f.includes("사회")) return "bg-yellow-100 text-yellow-700";
-    if (f.includes("자연")) return "bg-green-100 text-green-700";
-    if (f.includes("예체능")) return "bg-purple-100 text-purple-700";
-    if (f.includes("교육")) return "bg-orange-100 text-orange-700";
-    return "bg-gray-100 text-gray-700";
-  };
+
 
   return (
     <div
