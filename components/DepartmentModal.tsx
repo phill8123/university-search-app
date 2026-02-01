@@ -142,12 +142,14 @@ const DepartmentModal: React.FC<Props> = ({ data: initialData, onClose, onUpdate
 
         {/* Footer Actions */}
         <div className="p-6 pt-0 flex gap-3">
-          <button
-            onClick={onClose}
+          <a
+            href="https://www.adiga.kr/"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700 transition-colors text-center shadow-lg shadow-emerald-200"
           >
             대학어디가 바로가기
-          </button>
+          </a>
           <a
             href={`https://search.naver.com/search.naver?query=${details.universityName} 입학처`}
             target="_blank"
