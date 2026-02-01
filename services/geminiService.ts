@@ -205,27 +205,33 @@ const calculateRankingScore = (univ: UniversityStructure, deptName: string, quer
 
   // 1. Base University Tier Score (User Preference / Reputation)
   const tierScore = getBaseTierScore(univ.name); // 50 ~ 100
-  score += tierScore;
+  score += tierScore * 20; // WEIGHT BOOST: x20 (Range 1000 ~ 2000)
 
   // 2. Department Category Logic (Bonus Base)
   // Medical Fields get a massive base boost so they sort comfortably among themselves
-  // but if we are filtering anyway, the relative ranking matters most.
+  // Relative Hierarchy Bonuses (Internal sorting for mixed views)
 
+  // Adjusted Bonuses to match new Score Scale (~1000 pts gap) 
   const isMedical = d.includes("의예") || d.includes("의학");
   const isDent = d.includes("치의") || d.includes("치과");
   const isKorean = d.includes("한의");
   const isVet = d.includes("수의");
-  const isPharm = (d.includes("약학") || d.includes("약과")) && !d.includes("제약");
+  const isPharm = (d.includes("약학") || d.includes("약과")) && !d.includes("제약") && !d.includes("계약");
+
+  // 8. Exact Match / Prefix Bonus (Crucial for short queries like '경영')
+  if (query) {
+    if (d === query) score += 2000;
+    else if (d.startsWith(query)) score += 1000;
+  }
 
 
-  // Relative Hierarchy Bonuses (Internal sorting for mixed views)
-  if (isMedical) score += 300;
-  else if (isDent) score += 290;
-  else if (isKorean) score += 280;
-  else if (isVet) score += 270;
-  else if (isPharm) score += 260;
-  else if (d.includes("간호")) score += 50;
-  else if (d.includes("컴퓨터") || d.includes("소프트웨어") || d.includes("반도체")) score += 20;
+  if (isMedical) score += 5000;
+  else if (isDent) score += 4500;
+  else if (isKorean) score += 4000;
+  else if (isVet) score += 3500;
+  else if (isPharm) score += 3000;
+  else if (d.includes("간호")) score += 500;
+  else if (d.includes("컴퓨터") || d.includes("소프트웨어") || d.includes("반도체")) score += 200;
 
   // 3. Field Specific Bonuses
   // Medical / Nursing (Big 5 Hospitals)
@@ -333,11 +339,14 @@ export const searchDepartments = async (query: string): Promise<SearchResponse> 
       if (matchedUnivs.includes(univ)) continue;
 
       const depts = flattenDepartments(univ);
-      const matches = depts.filter(d =>
-        d.departmentName.includes(query) ||
-        query.includes(d.departmentName) ||
-        d.field.includes(query)
-      );
+      const matches = depts.filter(d => {
+        // STRICT RULE: Only match if department name has at least 2 chars of the query
+        // And we do NOT search by field anymore to prevent noise.
+        const nameHasQuery = d.departmentName.includes(query);
+        const queryHasName = query.includes(d.departmentName); // Rare, but if query is specific
+
+        return nameHasQuery || queryHasName;
+      });
 
       for (const d of matches) {
         if (!seenIds.has(d.id)) {

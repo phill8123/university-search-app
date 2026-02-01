@@ -142,21 +142,19 @@ const DepartmentModal: React.FC<Props> = ({ data: initialData, onClose, onUpdate
 
         {/* Footer Actions */}
         <div className="p-6 pt-0 flex gap-3">
-          <a
-            href={`https://www.adiga.kr/PageLinkAll.do?link=/kcue/ast/eip/eis/inf/univinf/eipUnivInfGnrl.do&p_menu_id=PG-EIP-01701&univ_cd=${details.universityName}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={onClose}
             className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700 transition-colors text-center shadow-lg shadow-emerald-200"
           >
             대학어디가 바로가기
-          </a>
+          </button>
           <a
-            href={`https://search.naver.com/search.naver?query=${details.universityName} ${details.departmentName}`}
+            href={`https://search.naver.com/search.naver?query=${details.universityName} 입학처`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors text-center"
           >
-            네이버 검색 확인
+            대학 입시홈페이지
           </a>
         </div>
       </div>
