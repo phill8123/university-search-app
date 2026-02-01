@@ -496,7 +496,7 @@ export const getDepartmentDetails = async (universityName: string, departmentNam
     universityName: universityName,
     departmentName: departmentName,
     location: univ.location,
-    field: "AI 종합 분석",
+    field: field,
     admissionData: admissionInfo,
     description: desc,
     tuitionFee: aiData.tuitionFee,

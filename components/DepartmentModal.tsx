@@ -82,8 +82,11 @@ const DepartmentModal: React.FC<Props> = ({ data: initialData, onClose, onUpdate
             <span className="text-sm font-medium text-gray-500 mb-1 block">{details.universityName}</span>
             <div className="flex items-center gap-3">
               <h2 className="text-2xl font-bold text-gray-900">{details.departmentName}</h2>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getBadgeStyle(details.field)}`}>
-                {details.field}
+              <span className="text-gray-600 font-medium text-lg">
+                {details.field}계열
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+                AI 종합 분석
               </span>
             </div>
             <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
@@ -103,22 +106,14 @@ const DepartmentModal: React.FC<Props> = ({ data: initialData, onClose, onUpdate
         {/* Content */}
         <div className="p-6">
           <>
-            {/* AI Analysis Section (New) */}
-            <section className="mb-8 animate-[fadeIn_0.5s_ease-out]">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-xl">🤖</span>
-                <h3 className="text-xl font-bold text-gray-900">AI 학과 분석</h3>
-              </div>
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 text-slate-700 leading-relaxed font-medium">
-                {details.description || "이 학과에 대한 AI 요약 정보가 아직 준비되지 않았습니다."}
-              </div>
-            </section>
+            {/* AI Analysis Section Removed */}
 
             {/* Admission Results Section */}
             <section className="animate-[fadeIn_0.5s_ease-out]">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-1 h-6 bg-emerald-600 rounded-full"></div>
-                <h3 className="text-xl font-bold text-gray-900">입시결과 (3개년 추이)</h3>
+                <h3 className="text-xl font-bold text-gray-900">AI 분석 입시결과(3개년 추이)</h3>
+                <span className="text-xs text-red-500 font-medium ml-2">* 최초/최종 등록 50%컷 반영</span>
               </div>
 
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
