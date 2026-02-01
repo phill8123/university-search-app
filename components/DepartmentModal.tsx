@@ -104,7 +104,7 @@ const DepartmentModal: React.FC<Props> = ({ data: initialData, onClose, onUpdate
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-1 h-6 bg-emerald-600 rounded-full"></div>
                 <h3 className="text-xl font-bold text-gray-900">AI 분석 입시결과(3개년 추이)</h3>
-                <span className="text-xs text-red-500 font-medium ml-2">* 최초/최종 등록 50%컷 반영</span>
+                <span className="text-xs text-red-500 font-medium ml-2">* 최종 50%컷 반영</span>
               </div>
 
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">

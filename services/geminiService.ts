@@ -44,13 +44,14 @@ const generateAIAnalysis = async (univ: UniversityStructure, deptName: string, c
       - 2025 Rate: ${csvStats?.rate || 'Unknown'} : 1
 
       TASKS:
-      1. RESEARCH/ESTIMATE: If Context is zero/unknown, YOU MUST research valid recent data (2024 results or 2025 plans) from "University Anywhere (Adiga)" or official sources. Do NOT return 0 or "Unknown".
-      2. Department Analysis: Go to the official homepage of "${univ.name}" Department of "${deptName}". Summarize THEIR specific introduction text (curriculum, educational goals) into a single sentence under 150 characters. Avoid generic descriptions.
+      1. RESEARCH/ESTIMATE: If Context is zero/unknown, YOU MUST research valid recent data (2024 results or 2025 plans) from "University Anywhere (Adiga)" or official sources.
+      2. CRITERIA: When searching or estimating admission grades, ALWAYS prioritize "Final 50% Cut" (최종 50%컷) or "Average Cut" if 50% is unavailable. Do NOT use 70% cut unless it's the only option.
+      3. Department Analysis: Go to the official homepage of "${univ.name}" Department of "${deptName}". Summarize THEIR specific introduction text (curriculum, educational goals) into a single sentence under 150 characters. Avoid generic descriptions.
       
       OUTPUT JSON STRICTLY:
       {
         "admission2024": {
-           "susiGyogwa": "e.g. 1.54 (70% cut)",
+           "susiGyogwa": "e.g. 1.54 (50% cut)",
            "susiJonghap": "e.g. 2.11 (50% cut)",
            "jeongsi": "e.g. 94.2 (Avg)"
         },
